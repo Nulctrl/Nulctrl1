@@ -138,27 +138,6 @@ finally:
     solver.log_stats()
 
 
-# In[32]:
-
-
-# shows that buoyancy is only determined by height and not x
-maximum=np.max(b.evaluate()['g'],axis=0)
-z=np.linspace(0,Nz,int(3*Nz/2))
-plt.plot(z,maximum)
-plt.show()
-
-avg=d3.Average(b,('x',)).evaluate()['g'].reshape(d3.Average(b,('x',)).evaluate()['g'].size)
-z=np.linspace(0,Nz,int(3*Nz/2))
-plt.plot(z,avg)
-plt.show()
-
-
-# In[33]:
-
-
-b.evaluate()['g'].shape #what is the difference between evaluate b and buoyancy from snapshots? why b has 384*96?
-
-
 # In[34]:
 
 
