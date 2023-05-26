@@ -223,29 +223,6 @@ animation.save('avg vorticity(x).gif', writer='imagemagick')
 
 solver.log_stats()
 
-
-# In[87]:
-
-
-#run in cmd
-"""
-
-Plot 2D cartesian snapshots.
-
-Usage:
-    plot_snapshots.py <files>... [--output=<dir>]
-
-Options:
-    --output=<dir>  Output directory [default: ./frames]    
-"""
-
-import h5py
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from dedalus.extras import plot_tools
-
 # In[ ]:
 
 
