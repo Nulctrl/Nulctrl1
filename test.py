@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[53]:
 
 
 import numpy as np
@@ -13,9 +13,10 @@ from matplotlib.animation import FuncAnimation
 import pathlib
 import subprocess
 import h5py
+import glob
 
 
-# In[31]:
+# In[106]:
 
 
 """
@@ -138,7 +139,28 @@ finally:
     solver.log_stats()
 
 
-# In[34]:
+# In[41]:
+
+
+# shows that buoyancy is only determined by height and not x
+maximum=np.max(b.evaluate()['g'],axis=0)
+z=np.linspace(0,Nz,int(3*Nz/2))
+plt.plot(z,maximum)
+plt.show()
+
+avg=d3.Average(b,('x',)).evaluate()['g'].reshape(d3.Average(b,('x',)).evaluate()['g'].size)
+z=np.linspace(0,Nz,int(3*Nz/2))
+plt.plot(z,avg)
+plt.show()
+
+
+# In[33]:
+
+
+b.evaluate()['g'].shape #what is the difference between evaluate b and buoyancy from snapshots? why b has 384*96?
+
+
+# In[149]:
 
 
 print(subprocess.check_output("find snapshots | sort", shell=True).decode())
@@ -156,7 +178,7 @@ with h5py.File('snapshots/snapshots_s1.h5', 'r') as file:
     plt.show()
 
 
-# In[36]:
+# In[61]:
 
 
 # avg vorticity over time, changing
@@ -180,51 +202,162 @@ with h5py.File('snapshots/snapshots_s1.h5', 'r') as file:
    
 
 
-# In[38]:
+# In[179]:
 
 
 # Avg vorticity(z) time animated
-    
+files = sorted(glob.glob('snapshots/*.h5'))
 fig, ax = plt.subplots()
 line, = ax.plot([], [], lw=2)
 
+with h5py.File(files[0], mode='r') as file:
+    vorticity=file['tasks']['vorticity'][:,:,:]
+    avgvs=np.mean(vorticity,axis=1)
+    
+for i in range(1,len(files)):
+    with h5py.File(files[i], mode='r') as file:
+        vorticity=file['tasks']['vorticity'][:,:,:]
+        avgv1=np.mean(vorticity,axis=1)
+        avgvs=np.append(avgvs,avgv1,axis=0)
+        
 def update(frame):
-    line.set_data(np.arange(len(avgv1[frame, :])), avgv1[frame, :])
+    line.set_data(np.arange(len(avgvs[frame, :])), avgvs[frame, :])
+    ax.set_xlim(0, len(avgvs[0, :]))
+    ax.set_ylim(np.min(avgvs[frame, :])-0.1,np.max(avgvs[frame, :])+0.1)
+    ax.set_title('Frame: {}'.format(frame))
+    ax.grid(True)  # Add gridlines
+    line.set_linewidth(2.5)  # Change line width
+    ax.set_xlabel('z')  # Add x-axis label
+    ax.set_ylabel('Vorticity')  # Add y-axis label
     return line,
 
-ax.set_xlim(0, len(avgv1[0, :]))
-ax.set_ylim(np.min(avgv1), np.max(avgv1))
-
-animation = FuncAnimation(fig, update, frames=len(avgv1), interval=200, blit=True)
+animation = FuncAnimation(fig, update, frames=len(avgvs), interval=100, blit=True)
 animation.save('avg vorticity(z).gif', writer='imagemagick')
+plt.show()
 
 
-# In[39]:
+# In[178]:
 
 
-# Avg vorticity(x) over time animated
-    
+# Avg vorticity(x) time animated
+files = sorted(glob.glob('snapshots/*.h5'))
 fig, ax = plt.subplots()
 line, = ax.plot([], [], lw=2)
 
+with h5py.File(files[0], mode='r') as file:
+    vorticity=file['tasks']['vorticity'][:,:,:]
+    avgvs=np.mean(vorticity,axis=2)
+    
+for i in range(1,len(files)):
+    with h5py.File(files[i], mode='r') as file:
+        vorticity=file['tasks']['vorticity'][:,:,:]
+        avgv1=np.mean(vorticity,axis=2)
+        avgvs=np.append(avgvs,avgv1,axis=0)
+        
 def update(frame):
-    line.set_data(np.arange(len(avgv2[frame, :])), avgv2[frame, :])
+    line.set_data(np.arange(len(avgvs[frame, :])), avgvs[frame, :])
+    ax.set_xlim(0, len(avgvs[0, :]))
+    ax.set_ylim(np.min(avgvs[frame, :])-0.1,np.max(avgvs[frame, :])+0.1)
+    ax.set_title('Frame: {}'.format(frame))
+    ax.grid(True)  # Add gridlines
+    line.set_linewidth(2.5)  # Change line width
+    ax.set_xlabel('x')  # Add x-axis label
+    ax.set_ylabel('Vorticity')  # Add y-axis label
     return line,
 
-ax.set_xlim(0, len(avgv2[0, :]))
-ax.set_ylim(np.min(avgv2), np.max(avgv2))
-
-animation = FuncAnimation(fig, update, frames=len(avgv2), interval=200, blit=True)
+animation = FuncAnimation(fig, update, frames=len(avgvs), interval=100, blit=True)
 animation.save('avg vorticity(x).gif', writer='imagemagick')
+plt.show()
 
 
-# In[40]:
+# In[180]:
 
 
 solver.log_stats()
 
+
+# In[87]:
+
+
+#run in cmd
+"""
+
+Plot 2D cartesian snapshots.
+
+Usage:
+    plot_snapshots.py <files>... [--output=<dir>]
+
+Options:
+    --output=<dir>  Output directory [default: ./frames]    
+"""
+
+import h5py
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from dedalus.extras import plot_tools
+
+
+def main(filename, start, count, output):
+    """Save plot of specified tasks for given range of analysis writes."""
+
+    # Plot settings
+    tasks = ['buoyancy', 'vorticity']
+    scale = 1.5
+    dpi = 200
+    title_func = lambda sim_time: 't = {:.3f}'.format(sim_time)
+    savename_func = lambda write: 'write_{:06}.png'.format(write)
+
+    # Layout
+    nrows, ncols = 2, 1
+    image = plot_tools.Box(4, 1)
+    pad = plot_tools.Frame(0.3, 0, 0, 0)
+    margin = plot_tools.Frame(0.2, 0.1, 0, 0)
+
+    # Create multifigure
+    mfig = plot_tools.MultiFigure(nrows, ncols, image, pad, margin, scale)
+    fig = mfig.figure
+
+    # Plot writes
+    with h5py.File(filename, mode='r') as file:
+        for index in range(start, start+count):
+            for n, task in enumerate(tasks):
+                # Build subfigure axes
+                i, j = divmod(n, ncols)
+                axes = mfig.add_axes(i, j, [0, 0, 1, 1])
+                # Call 3D plotting helper, slicing in time
+                dset = file['tasks'][task]
+                plot_tools.plot_bot_3d(dset, 0, index, axes=axes, title=task, even_scale=True, visible_axes=False)
+            # Add time title
+            title = title_func(file['scales/sim_time'][index])
+            title_height = 1 - 0.5 * mfig.margin.top / mfig.fig.y
+            fig.suptitle(title, x=0.44, y=title_height, ha='left')
+            # Save figure
+            savename = savename_func(file['scales/write_number'][index])
+            savepath = output.joinpath(savename)
+            fig.savefig(str(savepath), dpi=dpi)
+            fig.clear()
+    plt.close(fig)
+
+
+if __name__ == "__main__":
+
+    import pathlib
+    from docopt import docopt
+    from dedalus.tools import logging
+    from dedalus.tools import post
+    from dedalus.tools.parallel import Sync
+
+    args = docopt(__doc__)
+
+    output_path = pathlib.Path(args['--output']).absolute()
+    # Create output directory if needed
+    with Sync() as sync:
+        if sync.comm.rank == 0:
+            if not output_path.exists():
+                output_path.mkdir()
+    post.visit_writes(args['<files>'], main, output=output_path)
+
+
 # In[ ]:
-
-
-
-
