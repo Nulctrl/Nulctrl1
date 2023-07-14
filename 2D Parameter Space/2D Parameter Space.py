@@ -15,24 +15,23 @@ Aspect=[4,8,16,32,64]
 RA=[4, 5, 6]
 
 logger = logging.getLogger(__name__)
+Md = 3
+Vaisala= 4
+Prandtl = 0.7
+dealias = 3/2
+timestepper = d3.RK222
+max_timestep = 0.125
+dtype = np.float64
 
 for aspect in Aspect:
     for ra in RA:
     # Parameters
         Lx, Lz = aspect, 1
-        Nx, Nz = 32*aspect, 32
-        Rayleigh=4*10**ra
+        Nx, Nz = 64*aspect, 64
+        Rayleigh=2*10**ra
         kappa = (Lz**3*Md)/(Rayleigh * Prandtl)**(1/2)
         nu = (Lz**3*Md)/(Rayleigh / Prandtl)**(1/2)
-        stop_sim_time = round(1/nu)
-        
-        Md = 3
-        Vaisala= 4
-        Prandtl = 0.7
-        dealias = 3/2
-        timestepper = d3.RK222
-        max_timestep = 0.125
-        dtype = np.float64
+        stop_sim_time = round(2/nu)
 
         # Bases
         coords = d3.CartesianCoordinates('x', 'z')
@@ -102,7 +101,7 @@ for aspect in Aspect:
         m['g'] += -3 * z # Add linear background
 
         # Analysis
-        snapshot_name = f'snapshots {aspect}, 4e{ra}'
+        snapshot_name = f'snapshots {aspect}, 2e{ra}'
         snapshots = solver.evaluator.add_file_handler(snapshot_name, sim_dt=0.25, max_writes=50)
         snapshots.add_task(d, name='dry buoyancy')
         snapshots.add_task(m, name='moist buoyancy')
@@ -130,7 +129,8 @@ for aspect in Aspect:
                 solver.step(timestep)
                 if (solver.iteration-1) % 10 == 0:
                     max_Re = flow.max('Re')
-                    #logger.info('Iteration=%i, Time=%e, dt=%e, max(Re)=%f' %(solver.iteration, solver.sim_time, timestep, max_Re))
+                if (solver.iteration-1) % 1000 == 0:
+                    logger.info('Iteration=%i, Time=%e, dt=%e, max(Re)=%f' %(solver.iteration, solver.sim_time, timestep, max_Re))
         except:
             logger.error('Exception raised, triggering end of main loop.')
             raise
