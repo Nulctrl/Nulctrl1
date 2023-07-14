@@ -12,12 +12,12 @@ import glob
 import re
 
 Aspect=[4,8,16,32,64]
-RA=[4, 5, 6]
+RA=[4,5,6]
 
 Lx, Lz = 16, 1
-Nx, Nz = 512, 32
+Nx, Nz = 1024, 64
 Md = 3
-Rayleigh = 1e6
+Rayleigh = 2e6
 Vaisala= 4
 Prandtl = 0.7
 dealias = 3/2
@@ -65,11 +65,11 @@ integ1= lambda A: d3.Integrate(A, coords)
 
 
 
-
+"""
 for aspect in Aspect:
     for ra in RA:
-        nu = (Lz**3*Md)/(4*10**ra / Prandtl)**(1/2)
-        files = sorted(glob.glob(f'snapshots {aspect}, 4e{ra}/*.h5'),key=lambda f: int(re.sub('\D', '', f)))
+        nu = (Lz**3*Md)/(2*10**ra / Prandtl)**(1/2)
+        files = sorted(glob.glob(f'snapshots {aspect}, 2e{ra}/*.h5'),key=lambda f: int(re.sub('\D', '', f)))
         fig, ax = plt.subplots()
 
         with h5py.File(files[0], mode='r') as file:
@@ -87,12 +87,12 @@ for aspect in Aspect:
         ax.set_xlabel(r"Normalized Time $\nu t/H^2$")
         ax.set_ylabel(r"Total KE  $\log_{10}E_k(t)$")
         ax.set_yscale('log')
-        plt.savefig(f'Total_KE_vs_Time {aspect}, 4e{ra}')
-        plt.show()
+        plt.savefig(f'Total_KE_vs_Time {aspect}, 2e{ra} 2')
+        plt.close()
         
 for aspect in Aspect:
     for ra in RA:
-        files = sorted(glob.glob(f'snapshots {aspect}, 4e{ra}/*.h5'),key=lambda f: int(re.sub('\D', '', f)))
+        files = sorted(glob.glob(f'snapshots {aspect}, 2e{ra}/*.h5'),key=lambda f: int(re.sub('\D', '', f)))
         with h5py.File(files[-1], mode='r') as file:
             moist_buoyancy1 = file['tasks']['moist buoyancy']
             xgrid=moist_buoyancy1.dims[1][0][:]
@@ -110,15 +110,15 @@ for aspect in Aspect:
             plt.colorbar()
             plt.xlabel('x')
             plt.ylabel('z')
-            plt.title(f'Final Clouds {aspect}, 4e{ra}')
-            plt.savefig(f'Final Clouds {aspect}, 4e{ra}')
-            plt.show()
-            
+            plt.title(f'Final Clouds {aspect}, 2e{ra}')
+            plt.savefig(f'Final Clouds {aspect}, 2e{ra}')
+            plt.close()
+"""        
 print("start Animating")
 
 for aspect in Aspect:
     for ra in RA:
-        files = sorted(glob.glob(f'snapshots {aspect}, 4e{ra}/*.h5'),key=lambda f: int(re.sub('\D', '', f)))
+        files = sorted(glob.glob(f'snapshots {aspect}, 2e{ra}/*.h5'),key=lambda f: int(re.sub('\D', '', f)))
         with h5py.File(files[0], mode='r') as file:
             extra_buoyancy = file['tasks']['additional buoyancy'][:, :, :]
             xgrid=file['tasks']['additional buoyancy'].dims[1][0][:]
@@ -149,6 +149,8 @@ for aspect in Aspect:
 
         # Call animate method
         animation = FuncAnimation(fig, animate, frames=len(clouds), interval=100, blit=False)
-        animation.save(f'clouds {aspect}, 4e{ra}.gif', writer='imagemagick')
+        animation.save(f'clouds {aspect}, 2e{ra}.gif', writer='imagemagick')
         # Display the plot
         plt.show()
+        print(f'clouds {aspect}, 2e{ra} finished')
+
